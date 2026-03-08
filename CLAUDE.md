@@ -124,5 +124,6 @@ Uses S3 Vectors with an index-per-scope design. The `shared` index is created by
 **Supabase path:** If the MCP server shows "failed" or won't connect, the most common cause is a **key mismatch**. Running `setup.sh` again (or regenerating the key during setup) updates the Supabase secret but does not update AI client configs. Compare the key in the client config against `.setup-state` or the setup script output — they must match.
 
 **AWS Enterprise path:** If tools return errors, check CloudWatch Logs for the Lambda function. Common issues:
-- **Bedrock model access:** Ensure Titan Embed v2 and Claude 3 Haiku are enabled in your region
+- **Bedrock model access:** Ensure Titan Embed v2 and the Claude Haiku model are enabled in your region
 - **S3 Vectors permissions:** The Lambda role needs `s3vectors:*` on the vector bucket
+- **`AccessDeniedException` from Bedrock with a cross-region model:** Cross-region inference profiles (e.g. `us.anthropic.claude-haiku-4-5-20251001-v1:0`) require the IAM policy to grant access to both the inference profile ARN *and* the underlying foundation model ARNs in each routable region. The profile ARN alone is not sufficient. See `api-stack.ts` for the required ARN set.
