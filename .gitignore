@@ -1,0 +1,10 @@
+.env
+.setup-state
+.gemini/
+.claude/
+supabase/.temp/
+node_modules/
+package-lock.json
+*-export.json
+cdk/cdk.out/
+lambda/dist/
