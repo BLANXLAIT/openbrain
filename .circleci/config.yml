@@ -39,7 +39,7 @@ workflows:
   integration:
     jobs:
       - integration-test:
-          context: platdev-aws   # CircleCI context with AWS_ROLE_ARN
+          context: platform-development
           filters:
             branches:
               only: main
