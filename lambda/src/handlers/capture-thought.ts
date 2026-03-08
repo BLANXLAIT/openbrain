@@ -26,10 +26,11 @@ export async function handleCaptureThought(
 
   const key = randomUUID();
 
+  // S3 Vectors rejects empty arrays in metadata — omit array fields when empty
   await putVector(indexName, key, embedding, {
     type: metadata.type,
-    topics: metadata.topics,
-    people: metadata.people,
+    ...(metadata.topics.length > 0 && { topics: metadata.topics }),
+    ...(metadata.people.length > 0 && { people: metadata.people }),
     user_id: user.userId,
     created_at: Date.now(),
     content: text,
