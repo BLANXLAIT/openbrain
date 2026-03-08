@@ -380,6 +380,10 @@ Pre-built instructions for each AI client that teach it to search before answeri
 
 Want a Slack channel for quick-capture without opening an AI? The setup script offers to configure this automatically. For manual setup or troubleshooting, see [`slack/SETUP.md`](slack/SETUP.md).
 
+## Optional: Google Meet Ingestion (AWS Enterprise)
+
+Automatically capture Gemini-generated meeting summaries into your brain as shared thoughts. Uses a Google Apps Script that watches Gmail for meeting note emails, extracts the summary, scrubs PII/PHI, and calls the MCP endpoint. See [`google-meet/README.md`](google-meet/README.md).
+
 ## Troubleshooting
 
 **MCP server won't connect / "failed" status** — Most likely a key mismatch. Running `setup.sh` again (or answering "yes" to regenerate the key) updates the Supabase secret but does **not** update your AI client configs. Compare the key in your client config against the one in `.setup-state` (or the setup script output). They must match. To fix: either update the key in your client config, or re-run the `claude mcp add` / connector setup command with the current key.
@@ -432,6 +436,12 @@ openbrain/
 │   ├── gemini-takeout.py
 │   ├── gmail-export.py
 │   └── spotify-export.py
+├── google-meet/                    # Optional Google Meet ingestion (AWS Enterprise)
+│   ├── Code.gs
+│   ├── Auth.gs
+│   ├── Scrubber.gs
+│   ├── appsscript.json
+│   └── README.md
 ├── slack/                          # Optional Slack capture add-on
 │   ├── ingest-thought/
 │   │   └── index.ts

@@ -9,6 +9,8 @@
 - Private/shared scoping model: `private-{userId}` indexes for personal thoughts, `shared` index for org-wide access
 - Graceful handling when querying indexes that don't exist yet (returns empty results instead of errors)
 - Enterprise setup section in README
+- **Google Meet ingestion** — Apps Script add-on that auto-captures Gemini meeting summaries as shared thoughts (AWS Enterprise path). Includes PII/PHI scrubbing (regex, keyword blocklist, full-meeting skip by title label). See `google-meet/`.
+- Design doc: `docs/plans/2026-03-08-google-meet-ingestion-design.md`
 - CHANGELOG.md
 
 ### Changed
