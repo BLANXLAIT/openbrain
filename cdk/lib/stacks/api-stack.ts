@@ -5,15 +5,12 @@ import * as apigwv2 from "aws-cdk-lib/aws-apigatewayv2";
 import * as apigwv2Integrations from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import * as apigwv2Authorizers from "aws-cdk-lib/aws-apigatewayv2-authorizers";
 import * as cognito from "aws-cdk-lib/aws-cognito";
-import * as rds from "aws-cdk-lib/aws-rds";
 import * as iam from "aws-cdk-lib/aws-iam";
-import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 import * as path from "path";
 
 interface ApiStackProps extends cdk.StackProps {
-  cluster: rds.DatabaseCluster;
-  dbSecret: secretsmanager.ISecret;
+  vectorBucketName: string;
   userPool: cognito.UserPool;
   userPoolClients: cognito.UserPoolClient[];
 }
@@ -25,7 +22,7 @@ export class ApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
 
-    const { cluster, dbSecret, userPool, userPoolClients } = props;
+    const { vectorBucketName, userPool, userPoolClients } = props;
 
     // Lambda function
     this.handler = new lambdaNode.NodejsFunction(this, "McpHandler", {
@@ -35,9 +32,7 @@ export class ApiStack extends cdk.Stack {
       memorySize: 512,
       timeout: cdk.Duration.seconds(30),
       environment: {
-        CLUSTER_ARN: cluster.clusterArn,
-        SECRET_ARN: dbSecret.secretArn,
-        DATABASE_NAME: "brain",
+        VECTOR_BUCKET_NAME: vectorBucketName,
         EMBEDDING_MODEL_ID: "amazon.titan-embed-text-v2:0",
         METADATA_MODEL_ID: "anthropic.claude-3-haiku-20240307-v1:0",
       },
@@ -48,19 +43,26 @@ export class ApiStack extends cdk.Stack {
       },
     });
 
-    // IAM permissions
-    dbSecret.grantRead(this.handler);
-
+    // S3 Vectors permissions
     this.handler.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
-          "rds-data:ExecuteStatement",
-          "rds-data:BatchExecuteStatement",
+          "s3vectors:CreateIndex",
+          "s3vectors:QueryVectors",
+          "s3vectors:PutVectors",
+          "s3vectors:GetVectors",
+          "s3vectors:DeleteVectors",
+          "s3vectors:ListVectors",
+          "s3vectors:ListIndexes",
         ],
-        resources: [cluster.clusterArn],
+        resources: [
+          `arn:aws:s3vectors:${this.region}:${this.account}:vector-bucket/${vectorBucketName}`,
+          `arn:aws:s3vectors:${this.region}:${this.account}:vector-bucket/${vectorBucketName}/*`,
+        ],
       })
     );
 
+    // Bedrock permissions
     this.handler.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["bedrock:InvokeModel"],

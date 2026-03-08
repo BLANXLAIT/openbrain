@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import * as cdk from "aws-cdk-lib";
-import { DatabaseStack } from "../lib/stacks/database-stack";
+import { VectorStorageStack } from "../lib/stacks/vector-storage-stack";
 import { AuthStack } from "../lib/stacks/auth-stack";
 import { ApiStack } from "../lib/stacks/api-stack";
 
@@ -11,15 +11,14 @@ const env = {
   region: process.env.CDK_DEFAULT_REGION ?? "us-east-1",
 };
 
-const database = new DatabaseStack(app, "EnterpriseBrainDatabase", { env });
+const vectors = new VectorStorageStack(app, "EnterpriseBrainVectors", { env });
 const auth = new AuthStack(app, "EnterpriseBrainAuth", { env });
 const api = new ApiStack(app, "EnterpriseBrainApi", {
   env,
-  cluster: database.cluster,
-  dbSecret: database.dbSecret,
+  vectorBucketName: vectors.vectorBucketName,
   userPool: auth.userPool,
   userPoolClients: [auth.webClient, auth.cliClient],
 });
 
-api.addDependency(database);
+api.addDependency(vectors);
 api.addDependency(auth);

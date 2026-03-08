@@ -4,10 +4,14 @@ One database that every AI you use shares as persistent memory. Claude, ChatGPT,
 
 ```
 Claude Code ──┐
-Claude Desktop ┼── MCP ──→ Edge Function ──→ Supabase (pgvector)
-ChatGPT ───────┤                                    ↕
-Gemini CLI ────┘                             OpenRouter (embed + classify)
+Claude Desktop ┼── MCP ──→ Your Backend ──→ Vector Store
+ChatGPT ───────┤                                ↕
+Gemini CLI ────┘                          Embeddings + Classification
 ```
+
+Two deployment paths:
+- **Supabase** (free tier) — Supabase Edge Functions + pgvector + OpenRouter. Zero cost to start.
+- **AWS Enterprise** — Lambda + S3 Vectors + Bedrock + Cognito. Fully serverless, org-level sharing, IAM auth.
 
 ## What You Get
 
@@ -25,12 +29,21 @@ Gemini CLI ────┘                             OpenRouter (embed + class
 
 ## Cost
 
+**Supabase path:**
+
 | Service | Cost |
 |---------|------|
 | Supabase (free tier) | $0 |
 | OpenRouter (embeddings + classification) | ~$0.10–0.30/month |
 
-Two accounts. That's it.
+**AWS Enterprise path:**
+
+| Service | Cost |
+|---------|------|
+| S3 Vectors | Pay-per-use (pennies/month for personal use) |
+| Lambda + API Gateway | Pay-per-request |
+| Bedrock (Titan embeddings + Haiku metadata) | ~$0.10–0.50/month |
+| Cognito | Free tier covers 50K MAU |
 
 ---
 
@@ -281,6 +294,55 @@ Examples:
 - **Amazon** — Purchase patterns, product preferences → *"I prefer brand X for coffee, usually reorder every 3 weeks"*
 - **Google Maps** — Favorite places, travel patterns → *"My go-to restaurants are X, Y, Z in downtown"*
 
+---
+
+## Enterprise Setup (AWS)
+
+For teams or orgs that want IAM auth, private/shared scoping, and no external dependencies.
+
+### Prerequisites
+
+- AWS account with CDK bootstrapped
+- Node.js 20+
+- Bedrock model access enabled (Titan Embed v2, Claude 3 Haiku)
+
+### Deploy
+
+```bash
+cd cdk
+npm install
+npx cdk deploy --all
+```
+
+This creates three stacks:
+- **EnterpriseBrainVectors** — S3 vector bucket with a shared index
+- **EnterpriseBrainAuth** — Cognito user pool (email sign-in)
+- **EnterpriseBrainApi** — API Gateway + Lambda MCP server
+
+### Architecture
+
+```
+Client ──→ API Gateway (JWT auth) ──→ Lambda ──→ S3 Vectors
+                                        ↕
+                                      Bedrock
+                                   (embed + classify)
+```
+
+**Vector storage:** One S3 vector bucket with index-per-scope design:
+- `private-{userId}` — created on-demand at first capture
+- `shared` — org-wide, anyone can read/write
+
+**Scoping:** Each tool accepts a `scope` parameter:
+- `private` (default) — your thoughts only
+- `shared` — org-wide shared thoughts
+- `all` — both private and shared, merged
+
+### Connect
+
+After deploy, the API URL is output. Register users via Cognito, then connect MCP clients using the API URL with a JWT bearer token.
+
+---
+
 ### 6. Test It
 
 After migrating from one AI, open a **different** one and ask about something you just migrated.
@@ -334,43 +396,61 @@ Want a Slack channel for quick-capture without opening an AI? The setup script o
 
 ```
 openbrain/
-├── supabase/
+├── supabase/                       # Supabase deployment path
 │   ├── config.toml
 │   ├── migrations/
 │   │   └── 20260306000000_initial_schema.sql
 │   └── functions/
 │       └── open-brain-mcp/
-│           ├── index.ts          # MCP server
-│           └── deno.json         # dependencies
+│           ├── index.ts            # MCP server (Edge Function)
+│           └── deno.json
+├── cdk/                            # AWS Enterprise deployment path
+│   ├── bin/
+│   │   └── enterprise-brain.ts     # CDK app entry point
+│   └── lib/stacks/
+│       ├── vector-storage-stack.ts  # S3 vector bucket + shared index
+│       ├── auth-stack.ts           # Cognito user pool
+│       └── api-stack.ts            # API Gateway + Lambda
+├── lambda/                         # Lambda function (enterprise path)
+│   └── src/
+│       ├── index.ts                # MCP protocol handler
+│       ├── types.ts
+│       ├── auth/context.ts         # JWT auth
+│       ├── handlers/               # search, browse, capture, stats
+│       └── services/
+│           ├── vectors.ts          # S3 Vectors client
+│           ├── embeddings.ts       # Bedrock Titan
+│           └── metadata.ts         # Bedrock Claude Haiku
 ├── CLAUDE.md                       # Claude Code skill (auto-loaded)
 ├── GEMINI.md                       # Gemini CLI skill (auto-loaded)
 ├── skills/
-│   ├── claude-code.md              # Claude Code skill (standalone)
-│   ├── claude-desktop.md           # Claude Desktop instructions
-│   ├── chatgpt-instructions.md     # ChatGPT custom instructions
-│   └── gemini-gem.md               # Gemini Gem / CLI config
-├── migrations/                  # Data migration scripts
-│   ├── gemini-takeout.py          # Parse Google Takeout → brain
-│   ├── gmail-export.py           # Parse Gmail mbox → brain
-│   └── spotify-export.py         # Parse Spotify export → brain
-├── slack/                        # Optional Slack capture add-on
+│   ├── claude-code.md
+│   ├── claude-desktop.md
+│   ├── chatgpt-instructions.md
+│   └── gemini-gem.md
+├── migrations/                     # Data migration scripts
+│   ├── gemini-takeout.py
+│   ├── gmail-export.py
+│   └── spotify-export.py
+├── slack/                          # Optional Slack capture add-on
 │   ├── ingest-thought/
 │   │   └── index.ts
 │   └── SETUP.md
-├── setup.sh                      # Interactive setup script
-├── .env.example
+├── setup.sh                        # Interactive setup (Supabase path)
 └── README.md
 ```
 
 ## Swapping Models
 
-Edit the model strings in `supabase/functions/open-brain-mcp/index.ts` and redeploy:
+**Supabase path:** Edit the model strings in `supabase/functions/open-brain-mcp/index.ts` and redeploy:
 
 ```bash
 supabase functions deploy open-brain-mcp --no-verify-jwt
 ```
 
 Browse models at [openrouter.ai/models](https://openrouter.ai/models). Keep embedding dimensions at 1536 unless you also update the migration.
+
+**AWS Enterprise path:** Edit the model IDs in `cdk/lib/stacks/api-stack.ts` (environment variables) and redeploy with `npx cdk deploy --all`. The current setup uses Bedrock Titan Embed v2 (1024 dimensions) and Claude 3 Haiku for metadata extraction.
 
 ## Credits
 

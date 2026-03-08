@@ -1,20 +1,20 @@
-export interface ThoughtRow {
-  id: string;
-  content: string;
-  metadata: Record<string, unknown>;
-  similarity?: number;
-  created_at: string;
-  user_id: string;
-  team_id?: string;
-  visibility: "private" | "team" | "public";
-}
-
 export interface ThoughtMetadata {
   type: "observation" | "task" | "idea" | "reference" | "person_note";
   topics: string[];
   people: string[];
   action_items: string[];
   dates_mentioned: string[];
+}
+
+export interface S3VectorMetadata {
+  type: string;
+  topics: string[];
+  people: string[];
+  user_id: string;
+  created_at: number;
+  content: string;
+  action_items: string;
+  dates_mentioned: string;
 }
 
 export interface McpRequest {
@@ -35,18 +35,17 @@ export interface SearchArgs {
   limit?: number;
   type?: string;
   topic?: string;
-  scope?: "mine" | "team" | "all";
+  scope?: "private" | "shared" | "all";
 }
 
 export interface BrowseArgs {
   limit?: number;
   type?: string;
   topic?: string;
-  scope?: "mine" | "team" | "all";
+  scope?: "private" | "shared" | "all";
 }
 
 export interface CaptureArgs {
   text: string;
-  visibility?: "private" | "team" | "public";
-  team_id?: string;
+  scope?: "private" | "shared";
 }

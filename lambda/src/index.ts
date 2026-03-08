@@ -44,8 +44,8 @@ const TOOLS = [
         scope: {
           type: "string",
           description:
-            "Visibility scope: mine (default), team, all (includes public)",
-          default: "mine",
+            "Scope: private (default, your thoughts only), shared (org-wide), all (both)",
+          default: "private",
         },
       },
       required: ["query"],
@@ -72,8 +72,8 @@ const TOOLS = [
         scope: {
           type: "string",
           description:
-            "Visibility scope: mine (default), team, all",
-          default: "mine",
+            "Scope: private (default), shared, all",
+          default: "private",
         },
       },
     },
@@ -92,16 +92,11 @@ const TOOLS = [
       type: "object",
       properties: {
         text: { type: "string", description: "The thought to capture" },
-        visibility: {
+        scope: {
           type: "string",
           description:
-            "Visibility: private (default), team, public",
+            "Scope: private (default, only you can see it), shared (visible to the whole org)",
           default: "private",
-        },
-        team_id: {
-          type: "string",
-          description:
-            "Team ID to share with (uses your default team if omitted)",
         },
       },
       required: ["text"],

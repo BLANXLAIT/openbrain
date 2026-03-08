@@ -4,10 +4,19 @@ This repo implements the [Open Brain guide](https://promptkit.natebjones.com/202
 
 ## Repo Purpose
 
-Everything a user needs to set up their own Open Brain:
+Everything a user needs to set up their own Open Brain. Two deployment paths:
+
+**Supabase (free tier):**
 - `setup.sh` — Automated setup: links Supabase, applies migrations, sets secrets, deploys functions
 - `supabase/migrations/` — Database schema (pgvector, thoughts table, match_thoughts function)
 - `supabase/functions/open-brain-mcp/` — MCP server (Edge Function)
+
+**AWS Enterprise:**
+- `cdk/` — CDK stacks: S3 Vectors, Cognito auth, API Gateway + Lambda
+- `lambda/` — MCP server with S3 Vectors storage, Bedrock embeddings/metadata
+- Index-per-scope design: `private-{userId}` + `shared` indexes
+
+**Shared:**
 - `slack/ingest-thought/` — Optional Slack capture add-on
 - `skills/` — Pre-built instructions for each AI client
 
@@ -95,18 +104,25 @@ After migration, suggest the user test by asking a different AI client about som
 
 ## Development Notes
 
-### Database Migrations
+### Supabase Path
 
-The repo uses a single migration file (`20260306000000_initial_schema.sql`) that contains the complete schema. This is intentional — new users get a clean setup with one migration.
+The repo uses a single migration file (`20260306000000_initial_schema.sql`) that contains the complete schema. New users get a clean setup with one migration.
 
-If you've applied older migrations to a live project that were later folded into the initial schema, repair the migration history:
+### AWS Enterprise Path
 
-```bash
-supabase migration repair <migration_id> --status reverted
-```
+Uses S3 Vectors with an index-per-scope design. The `shared` index is created by CDK at deploy time. Private user indexes (`private-{userId}`) are created on-demand at first capture via the Lambda. No database migrations needed — S3 Vectors is schemaless.
 
-This tells Supabase to ignore the removed migration without touching the actual database.
+**Scoping model:**
+- `scope: "private"` (default) — reads/writes to `private-{userId}` index
+- `scope: "shared"` — reads/writes to the `shared` index
+- `scope: "all"` — queries both indexes, merges results
+
+**Deploy:** `cd cdk && npx cdk deploy --all`
 
 ## Troubleshooting
 
-If the MCP server shows "failed" or won't connect, the most common cause is a **key mismatch**. Running `setup.sh` again (or regenerating the key during setup) updates the Supabase secret but does not update AI client configs. Compare the key in the client config against `.setup-state` or the setup script output — they must match. To fix, update the client config or re-run `claude mcp add` with the current key.
+**Supabase path:** If the MCP server shows "failed" or won't connect, the most common cause is a **key mismatch**. Running `setup.sh` again (or regenerating the key during setup) updates the Supabase secret but does not update AI client configs. Compare the key in the client config against `.setup-state` or the setup script output — they must match.
+
+**AWS Enterprise path:** If tools return errors, check CloudWatch Logs for the Lambda function. Common issues:
+- **Bedrock model access:** Ensure Titan Embed v2 and Claude 3 Haiku are enabled in your region
+- **S3 Vectors permissions:** The Lambda role needs `s3vectors:*` on the vector bucket
