@@ -9,6 +9,7 @@ export default defineConfig({
     // Run test files serially to avoid S3 Vectors eventual-consistency races.
     pool: "forks",
     poolOptions: { forks: { singleFork: true } },
-    reporters: ["verbose"],
+    reporters: ["verbose", "junit"],
+    outputFile: { junit: "./test-results/junit.xml" },
   },
 });

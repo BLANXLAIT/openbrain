@@ -23,5 +23,6 @@ if [ ! -d node_modules ]; then
   npm install
 fi
 
+mkdir -p test-results
 echo "Running Open Brain integration tests..."
 npm test
