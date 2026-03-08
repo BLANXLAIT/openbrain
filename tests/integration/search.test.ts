@@ -48,19 +48,22 @@ describe("search_thoughts", () => {
   });
 
   it("scope:all returns results from both indexes", async () => {
+    // Query semantically covers both seeded thoughts:
+    //   private: "Bedrock Titan for all embedding workloads"
+    //   shared:  "deploy to us-east-1 as the primary region"
     const res = await mcp("tools/call", {
       name: "search_thoughts",
       arguments: {
-        query: RUN_ID,
+        query: "Bedrock embeddings and primary deployment region",
         scope: "all",
         threshold: 0.1,
         limit: 20,
       },
     });
     const text = toolText(res as any);
-    // Should find at least 2 thoughts (private + shared)
-    const matches = (text.match(new RegExp(RUN_ID, "g")) ?? []).length;
-    expect(matches).toBeGreaterThanOrEqual(2);
+    // Both seeded thoughts should appear — one private, one shared
+    expect(text).toMatch(/Bedrock Titan/i);
+    expect(text).toMatch(/us-east-1/i);
   });
 
   it("private thought does NOT appear in shared-only search", async () => {
