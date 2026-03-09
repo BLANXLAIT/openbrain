@@ -35,7 +35,9 @@ export async function extractMetadata(
   const result = JSON.parse(new TextDecoder().decode(response.body));
 
   try {
-    const content = result.content[0].text;
+    const raw = result.content[0].text as string;
+    // Strip markdown code fences that some model versions add (```json ... ```)
+    const content = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
     return JSON.parse(content) as ThoughtMetadata;
   } catch {
     return {

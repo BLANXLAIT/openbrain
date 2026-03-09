@@ -56,8 +56,8 @@ export class ApiStack extends cdk.Stack {
           "s3vectors:ListIndexes",
         ],
         resources: [
-          `arn:aws:s3vectors:${this.region}:${this.account}:vector-bucket/${vectorBucketName}`,
-          `arn:aws:s3vectors:${this.region}:${this.account}:vector-bucket/${vectorBucketName}/*`,
+          `arn:aws:s3vectors:${this.region}:${this.account}:bucket/${vectorBucketName}`,
+          `arn:aws:s3vectors:${this.region}:${this.account}:bucket/${vectorBucketName}/*`,
         ],
       })
     );
