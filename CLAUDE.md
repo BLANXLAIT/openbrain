@@ -80,9 +80,10 @@ Open Brain doubles as a shared communication bus for agents. Each agent gets its
 - Agents "subscribe" by searching/browsing with a topic filter
 
 **Web dashboard:**
-- `open-brain-dashboard` Edge Function serves an HTML dashboard at `?key=<api-key>`
+- `dashboard.html` — standalone HTML file, open locally or host anywhere
+- Connects to the `open-brain-dashboard` Edge Function (JSON API) for data
 - Shows agent activity, per-agent breakdown, and recent thoughts timeline
-- Auto-refreshes every 30 seconds
+- Auto-refreshes every 30 seconds; accepts `?key=` URL param or prompts for key
 
 **Registering a new agent:**
 ```sql
